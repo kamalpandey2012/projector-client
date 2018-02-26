@@ -1,0 +1,44 @@
+{
+    "name": "projector",
+    "displayName": "projector",
+    "description": "app to project code to other screens",
+    "version": "0.0.1",
+    "publisher": "kamalpandey2012",
+    "engines": {
+        "vscode": "^1.20.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onCommand:extension.joinProjector"
+    ],
+    "contributes": {
+        "commands": [
+            {
+                "command": "extension.joinProjector",
+                "title": "Join"
+            }
+        ]
+    },
+    "main": "./out/extension",
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "npm run compile && node ./node_modules/vscode/bin/test"
+    },
+    "devDependencies": {
+        "typescript": "^2.6.1",
+        "vscode": "^1.1.6",
+        "tslint": "^5.8.0",
+        "@types/node": "^7.0.43",
+        "@types/mocha": "^2.2.42"
+    },
+    "dependencies": {
+        "@types/socket.io-client": "^1.4.32",
+        "socket.io": "^2.0.4",
+        "socket.io-client": "^2.0.4"
+    }
+}
