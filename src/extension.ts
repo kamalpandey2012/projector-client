@@ -2,6 +2,9 @@
 import { ExtensionContext, Disposable, commands, window, workspace, Position, Selection, Range, Uri, ShellExecution } from 'vscode';
 import * as io from 'socket.io-client';
 import { config } from './socketconfig';
+import * as fs from 'fs';
+import * as fileUtil from './utils/fileUtils';
+import * as DocumentEvents from './eventHandler/DocumentEvents';
 
 export function activate(context: ExtensionContext) {
 
@@ -21,21 +24,37 @@ export function activate(context: ExtensionContext) {
             console.log('connection established');
         });
 
-
-        socket.on('update_time', function (data: any) {
+        socket.on('file_system_change', function (data: string) {
+            console.log('inside file system change');
+            const fileSystemChangeData = JSON.parse(data);
+            const changeType: string = fileSystemChangeData.action;
+            const filePath = fileSystemChangeData.filePath;
+            const fullPath: string | undefined = fileUtil.getFullFilePath(filePath);
+            if (!fullPath) {
+                return;
+            }
+            switch (changeType) {
+                case 'create':
+                    fs.open(fullPath, 'wx', function (err: any, fd: any) {
+                        if (err) {
+                            if (err.code === 'EEXIST') {
+                                console.error('file already exists');
+                                return;
+                            }
+                            return;
+                        }
+                        writeDataToFile(fd, rootPath, filePath);
+                    });
+                    break;
+                case 'delete':
+                    break;
+                default:
+                    console.log('no event catched', changeType);
+            }
         });
 
-
-        socket.on('open_file', function (filePath: string) {
-            const currentEditorPath = rootPath + filePath;
-            workspace.openTextDocument(currentEditorPath).then(function (didOpen) {
-                window.showTextDocument(didOpen.uri).then(function (openFile) {
-                    let editor = window.activeTextEditor;
-                    if (!editor) {
-                        return;
-                    }
-                });
-            });
+        socket.on('load_file_to_editor', function (filePath: string) {
+            DocumentEvents.load_file_to_editor(rootPath, filePath);
         });
 
         socket.on('selection_change', function (data: string) {
@@ -75,19 +94,24 @@ export function activate(context: ExtensionContext) {
 
             });
         });
-        socket.on('file_system_change', function (data: string) {
-            const fileSystemChangeData = JSON.parse(data);
-            const changeType: string = fileSystemChangeData.action;
-            const changeUri: Uri = fileSystemChangeData.uri;
-            if (changeType === 'created') {
-                // const newShellExecution = new ShellExecution(`touch ${}`);
+
+    });
+    context.subscriptions.push(disposable);
+
+    const writeDataToFile = (fd: number, rootPath: string, filePath: string) => {
+
+        fs.write(fd, ``, function (err, written: number, data: string) {
+            if (err) {
+                console.log('something went wrong');
+                return;
             }
+            console.log('file written', written, data);
+            DocumentEvents.load_file_to_editor(rootPath, filePath);
+            console.log('file opened');
         });
+    };
+}
 
-
-
-        context.subscriptions.push(disposable);
-    }
 
 export function deactivate() {
-    }
+}
